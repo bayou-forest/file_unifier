@@ -45,5 +45,5 @@ https://github.com/bayou-forest/file_unifier.git
   コピーしてくる対象ファイル同士でファイル名の重複がある場合、またはコピー先 _extraA 内に同盟のファイルが既に存在しコピーできない場合は、日付分類などと同じように、コピーできなかったファイルパスを表示してスキップしてください。
   
 
-
+robocopy from\yyy to_dir\yyy /E
 
