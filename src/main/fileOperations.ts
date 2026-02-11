@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { BrowserWindow, nativeImage } from 'electron'
-import type { DeleteResult, FlattenResult, DateSortResult, ThumbnailResult, ScanProgress } from '@shared/types'
+import type { DeleteResult, FlattenResult, DateSortResult, ThumbnailResult, ScanProgress, CopyUniqueResult } from '@shared/types'
 
 /** 画像拡張子 */
 const IMAGE_EXTENSIONS = new Set([
@@ -266,4 +266,75 @@ export async function getThumbnail(filePath: string): Promise<ThumbnailResult> {
   }
 
   return { dataUrl: null }
+}
+
+/**
+ * ユニークファイルを相手フォルダにコピーする
+ * sourceFiles: コピー元のファイル一覧（片方のフォルダにしかないファイル）
+ * destFolder: コピー先の親フォルダ
+ * subFolderName: コピー先に作成するサブフォルダ名 (例: '_extraA', '_extraB')
+ */
+export async function copyUniqueFiles(
+  sourceFiles: { filePath: string; fileName: string }[],
+  destFolder: string,
+  subFolderName: string
+): Promise<CopyUniqueResult> {
+  const destDir = path.join(destFolder, subFolderName)
+  const skippedFiles: string[] = []
+  let copiedCount = 0
+
+  // コピー先フォルダを作成
+  await fs.promises.mkdir(destDir, { recursive: true })
+
+  // コピー元ファイル群の中で同名ファイルがないかチェックするためのセット
+  const usedNames = new Set<string>()
+
+  // コピー先に既存のファイル名を取得
+  try {
+    const existingEntries = await fs.promises.readdir(destDir)
+    for (const entry of existingEntries) {
+      usedNames.add(entry.toLowerCase())
+    }
+  } catch {
+    // ディレクトリが新規の場合は無視
+  }
+
+  // 進捗送信
+  const mainWindow = BrowserWindow.getAllWindows()[0]
+  const total = sourceFiles.length
+
+  for (let i = 0; i < sourceFiles.length; i++) {
+    const file = sourceFiles[i]
+    const normalizedName = file.fileName.toLowerCase()
+
+    // 進捗通知
+    if (mainWindow) {
+      mainWindow.webContents.send('scan-progress', {
+        current: i + 1,
+        total,
+        currentFile: file.fileName
+      } satisfies ScanProgress)
+    }
+
+    // 同名ファイルが既に存在する場合はスキップ
+    if (usedNames.has(normalizedName)) {
+      skippedFiles.push(file.filePath)
+      continue
+    }
+
+    const destPath = path.join(destDir, file.fileName)
+    try {
+      await fs.promises.copyFile(file.filePath, destPath, fs.constants.COPYFILE_EXCL)
+      usedNames.add(normalizedName)
+      copiedCount++
+    } catch {
+      skippedFiles.push(file.filePath)
+    }
+  }
+
+  return {
+    copiedCount,
+    totalCount: sourceFiles.length,
+    skippedFiles
+  }
 }

@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { FileInfo, ScanProgress, DeleteResult, FlattenResult, DateSortResult, ThumbnailResult } from '@shared/types'
+import type { FileInfo, ScanProgress, DeleteResult, FlattenResult, DateSortResult, ThumbnailResult, CopyUniqueResult } from '@shared/types'
 
 /**
  * レンダラープロセスに公開するAPI
@@ -49,6 +49,15 @@ const api = {
   /** メディアファイル判定 */
   isMediaFile: (filePath: string): Promise<{ isImage: boolean; isVideo: boolean }> => {
     return ipcRenderer.invoke('is-media-file', filePath)
+  },
+
+  /** ユニークファイルを相手フォルダにコピー */
+  copyUniqueFiles: (
+    sourceFiles: { filePath: string; fileName: string }[],
+    destFolder: string,
+    subFolderName: string
+  ): Promise<CopyUniqueResult> => {
+    return ipcRenderer.invoke('copy-unique-files', sourceFiles, destFolder, subFolderName)
   },
 
   /** スキャン進捗のコールバックを登録する (解除関数を返す) */

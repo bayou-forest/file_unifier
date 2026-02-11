@@ -818,3 +818,31 @@ button {
   font-weight: 600;
   font-size: 13px;
 }
+
+/* ===== Unique Copy Section ===== */
+.unique-copy-section {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.unique-copy-section h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.unique-copy-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.copy-result {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: var(--success-light);
+  border-radius: var(--radius);
+}

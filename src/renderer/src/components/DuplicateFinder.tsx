@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react'
-import type { FileInfo, ScanProgress } from '@shared/types'
+import type { FileInfo, ScanProgress, CopyUniqueResult } from '@shared/types'
 import {
   findDuplicatesByHash,
   findDuplicatesByName,
@@ -28,6 +28,9 @@ export default function DuplicateFinder() {
   const [activeResultTab, setActiveResultTab] = useState('hash-a')
   const [scanned, setScanned] = useState(false)
   const [abortedMessage, setAbortedMessage] = useState('')
+  const [copying, setCopying] = useState(false)
+  const [copyResult, setCopyResult] = useState<CopyUniqueResult | null>(null)
+  const [copyDirection, setCopyDirection] = useState<'AtoB' | 'BtoA' | null>(null)
 
   // スキャン進捗リスナー
   useEffect(() => {
@@ -124,6 +127,58 @@ export default function DuplicateFinder() {
         : [],
     [filesA, filesB]
   )
+
+  // フォルダAにしかないファイル / Bにしかないファイル (ハッシュ基準)
+  const uniqueToA = useMemo(() => {
+    if (filesA.length === 0 || filesB.length === 0) return []
+    const hashesB = new Set(filesB.map((f) => f.md5Hash))
+    return filesA.filter((f) => !hashesB.has(f.md5Hash))
+  }, [filesA, filesB])
+
+  const uniqueToB = useMemo(() => {
+    if (filesA.length === 0 || filesB.length === 0) return []
+    const hashesA = new Set(filesA.map((f) => f.md5Hash))
+    return filesB.filter((f) => !hashesA.has(f.md5Hash))
+  }, [filesA, filesB])
+
+  /** ユニークファイルを相手フォルダにコピー */
+  const handleCopyUnique = async (direction: 'AtoB' | 'BtoA') => {
+    const sourceFiles = direction === 'AtoB' ? uniqueToA : uniqueToB
+    const destFolder = direction === 'AtoB' ? folderB : folderA
+    const subFolderName = direction === 'AtoB' ? '_extraA' : '_extraB'
+
+    if (sourceFiles.length === 0) {
+      alert('コピー対象のファイルがありません。')
+      return
+    }
+    if (!destFolder) {
+      alert('コピー先のフォルダが選択されていません。')
+      return
+    }
+
+    const confirmed = confirm(
+      `${sourceFiles.length}件のファイルを\n${destFolder}/${subFolderName}\nにコピーしますか？`
+    )
+    if (!confirmed) return
+
+    setCopying(true)
+    setCopyResult(null)
+    setCopyDirection(direction)
+    try {
+      const result = await window.electronAPI.copyUniqueFiles(
+        sourceFiles.map((f) => ({ filePath: f.filePath, fileName: f.fileName })),
+        destFolder,
+        subFolderName
+      )
+      setCopyResult(result)
+    } catch (err) {
+      console.error('Copy error:', err)
+      alert('コピー中にエラーが発生しました')
+    } finally {
+      setCopying(false)
+      setProgress(null)
+    }
+  }
 
   const duplicateCounts: Record<string, number> = {
     'hash-a': hashDupsA.length,
@@ -247,6 +302,74 @@ export default function DuplicateFinder() {
           <span>フォルダA: {filesA.length} ファイル</span>
           {filesB.length > 0 && (
             <span>フォルダB: {filesB.length} ファイル</span>
+          )}
+        </div>
+      )}
+
+      {scanned && filesA.length > 0 && filesB.length > 0 && activeResultTab === 'hash-cross' && (
+        <div className="unique-copy-section">
+          <h3>ユニークファイルのコピー（ハッシュ基準）</h3>
+          <p className="tool-description" style={{ marginBottom: 12 }}>
+            片方のフォルダにしかないファイルを、もう片方のフォルダにコピーします。
+            コピー先にサブフォルダが作成され、ファイルがフラットにコピーされます。
+          </p>
+          <div className="unique-copy-buttons">
+            <button
+              className="btn-primary"
+              disabled={copying || uniqueToA.length === 0}
+              onClick={() => handleCopyUnique('AtoB')}
+            >
+              {copying && copyDirection === 'AtoB'
+                ? 'コピー中...'
+                : `Aにしかないファイルを B/_extraA にコピー (${uniqueToA.length}件)`}
+            </button>
+            <button
+              className="btn-primary"
+              disabled={copying || uniqueToB.length === 0}
+              onClick={() => handleCopyUnique('BtoA')}
+            >
+              {copying && copyDirection === 'BtoA'
+                ? 'コピー中...'
+                : `Bにしかないファイルを A/_extraB にコピー (${uniqueToB.length}件)`}
+            </button>
+          </div>
+          {copying && progress && (
+            <div className="progress-section" style={{ marginTop: 12 }}>
+              <div className="progress-label">
+                コピー中... ({progress.current}/{progress.total})
+              </div>
+              <div className="progress-bar">
+                <div
+                  className="progress-fill"
+                  style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                />
+              </div>
+              <div className="progress-file">{progress.currentFile}</div>
+            </div>
+          )}
+          {copyResult && (
+            <div className="copy-result">
+              <div className="result-summary">
+                <span className="success-text">
+                  {copyResult.copiedCount}件コピー成功
+                </span>
+                {copyResult.skippedFiles.length > 0 && (
+                  <span style={{ marginLeft: 12, color: 'var(--text-muted)' }}>
+                    / {copyResult.skippedFiles.length}件スキップ
+                  </span>
+                )}
+              </div>
+              {copyResult.skippedFiles.length > 0 && (
+                <div className="failed-files">
+                  <h4>スキップされたファイル（同名ファイルが存在）:</h4>
+                  <ul>
+                    {copyResult.skippedFiles.map((f, i) => (
+                      <li key={i}>{f}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

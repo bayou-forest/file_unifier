@@ -62,6 +62,16 @@ export interface DateSortResult {
   skippedFiles: string[]
 }
 
+/** ユニークファイルコピー結果 */
+export interface CopyUniqueResult {
+  /** コピーに成功したファイル数 */
+  copiedCount: number
+  /** 対象ファイル総数 */
+  totalCount: number
+  /** スキップされたファイルパス一覧 (同名ファイルが既に存在) */
+  skippedFiles: string[]
+}
+
 /** サムネイル結果 */
 export interface ThumbnailResult {
   /** Base64エンコードされた画像データ (data URI) */

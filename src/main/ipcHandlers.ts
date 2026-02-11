@@ -1,6 +1,6 @@
 import { ipcMain, dialog } from 'electron'
 import { scanFolder, abortScan } from './fileScanner'
-import { deleteFiles, flattenFolder, removeEmptyFolders, dateSortFiles, getThumbnail, isMediaFile } from './fileOperations'
+import { deleteFiles, flattenFolder, removeEmptyFolders, dateSortFiles, getThumbnail, isMediaFile, copyUniqueFiles } from './fileOperations'
 
 /**
  * メインプロセスのIPCハンドラを登録する
@@ -60,4 +60,17 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('is-media-file', async (_event, filePath: string) => {
     return isMediaFile(filePath)
   })
+
+  // ユニークファイルを相手フォルダにコピー
+  ipcMain.handle(
+    'copy-unique-files',
+    async (
+      _event,
+      sourceFiles: { filePath: string; fileName: string }[],
+      destFolder: string,
+      subFolderName: string
+    ) => {
+      return await copyUniqueFiles(sourceFiles, destFolder, subFolderName)
+    }
+  )
 }
