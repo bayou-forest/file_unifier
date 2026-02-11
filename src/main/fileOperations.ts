@@ -262,7 +262,7 @@ export async function getThumbnail(filePath: string): Promise<ThumbnailResult> {
 
   if (VIDEO_EXTENSIONS.has(ext)) {
     // 動画のサムネイル: ネイティブサポートなし。file:// URLをレンダラー側でvideoタグ使用
-    return { dataUrl: `file://${filePath}` }
+    return { dataUrl: `file:///${filePath.replace(/\\/g, '/')}` }
   }
 
   return { dataUrl: null }

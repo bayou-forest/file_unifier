@@ -466,6 +466,7 @@ button {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .modal-header {
@@ -474,6 +475,7 @@ button {
   justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -500,19 +502,26 @@ button {
   padding: 20px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
 }
 
 .modal-footer {
   display: flex;
   justify-content: space-between;
-  padding: 16px 20px;
+  align-items: center;
+  padding: 12px 20px;
   border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .nav-buttons,
 .action-buttons {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 /* ===== Resolve Dialog ===== */
@@ -754,11 +763,9 @@ button {
 }
 
 .thumbnail-popover {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 200;
-  margin-top: 4px;
+  position: fixed;
+  z-index: 1000;
+  visibility: hidden;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius);

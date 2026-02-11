@@ -40,6 +40,7 @@ export default function ThumbnailPreview({ filePath, displayText, className }: P
   const isMedia = isMediaFilePath(filePath)
   const isVideo = isVideoPath(filePath)
   const popoverRef = useRef<HTMLDivElement>(null)
+  const triggerRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     if (showPreview && !thumbnailUrl && !loading) {
@@ -65,6 +66,40 @@ export default function ThumbnailPreview({ filePath, displayText, className }: P
     return () => document.removeEventListener('mousedown', handler)
   }, [showPreview])
 
+  // スクロール時にポップオーバーを閉じる
+  useEffect(() => {
+    if (!showPreview) return
+    const handler = () => setShowPreview(false)
+    window.addEventListener('scroll', handler, true)
+    return () => window.removeEventListener('scroll', handler, true)
+  }, [showPreview])
+
+  // ポップオーバーの位置をビューポート基準で計算
+  useEffect(() => {
+    if (!showPreview || !popoverRef.current || !triggerRef.current) return
+    const trigger = triggerRef.current.getBoundingClientRect()
+    const popover = popoverRef.current
+    const popoverRect = popover.getBoundingClientRect()
+
+    let top = trigger.bottom + 4
+    let left = trigger.left
+
+    // 下にはみ出す場合は上に表示
+    if (top + popoverRect.height > window.innerHeight - 8) {
+      top = trigger.top - popoverRect.height - 4
+    }
+    if (top < 8) top = 8
+    // 右にはみ出す場合
+    if (left + popoverRect.width > window.innerWidth - 8) {
+      left = window.innerWidth - popoverRect.width - 8
+    }
+    if (left < 8) left = 8
+
+    popover.style.top = `${top}px`
+    popover.style.left = `${left}px`
+    popover.style.visibility = 'visible'
+  }, [showPreview, thumbnailUrl, loading])
+
   const handleClick = (e: React.MouseEvent) => {
     if (!isMedia) return
     e.stopPropagation()
@@ -74,6 +109,7 @@ export default function ThumbnailPreview({ filePath, displayText, className }: P
   return (
     <span className={`thumbnail-wrapper ${className || ''}`}>
       <span
+        ref={triggerRef}
         className={`file-path-text ${isMedia ? 'clickable-media' : ''}`}
         onClick={handleClick}
         title={filePath}
