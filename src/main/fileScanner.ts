@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import * as crypto from 'crypto'
 import { BrowserWindow } from 'electron'
-import type { FileInfo, ScanProgress } from '@shared/types'
+import type { FileInfo, ScanProgress, CacheInfo } from '@shared/types'
 
 /** MD5ハッシュのキャッシュ (アプリ再起動でクリア) */
 const hashCache = new Map<string, { hash: string; mtimeMs: number; size: number }>()
@@ -15,6 +15,19 @@ let scanAborted = false
  */
 export function abortScan(): void {
   scanAborted = true
+}
+
+/**
+ * ハッシュキャッシュの情報 (件数 + 詳細一覧) を取得する
+ */
+export function getCacheInfo(): CacheInfo {
+  const entries = Array.from(hashCache.entries()).map(([filePath, value]) => ({
+    filePath,
+    hash: value.hash,
+    size: value.size,
+    mtimeMs: value.mtimeMs
+  }))
+  return { count: entries.length, entries }
 }
 
 /**

@@ -31,6 +31,42 @@ export function findDuplicatesByName(files: FileInfo[]): DuplicateGroup[] {
 }
 
 /**
+ * 単一フォルダ内でファイル名かつMD5ハッシュの両方が重複しているファイルをグループ化する
+ */
+export function findDuplicatesByNameAndHash(files: FileInfo[]): DuplicateGroup[] {
+  const groups = new Map<string, FileInfo[]>()
+  for (const file of files) {
+    const key = `${file.fileName}::${file.md5Hash}`
+    const existing = groups.get(key) || []
+    existing.push(file)
+    groups.set(key, existing)
+  }
+  return Array.from(groups.entries())
+    .filter(([, files]) => files.length > 1)
+    .map(([key, files]) => ({ key, files }))
+}
+
+/**
+ * 2つのフォルダ間でファイル名かつMD5ハッシュの両方が重複しているファイルをグループ化する
+ */
+export function findCrossDuplicatesByNameAndHash(
+  filesA: FileInfo[],
+  filesB: FileInfo[]
+): DuplicateGroup[] {
+  const keysA = new Set(filesA.map((f) => `${f.fileName}::${f.md5Hash}`))
+  const keysB = new Set(filesB.map((f) => `${f.fileName}::${f.md5Hash}`))
+  const commonKeys = [...keysA].filter((k) => keysB.has(k))
+
+  return commonKeys.map((key) => ({
+    key,
+    files: [
+      ...filesA.filter((f) => `${f.fileName}::${f.md5Hash}` === key),
+      ...filesB.filter((f) => `${f.fileName}::${f.md5Hash}` === key)
+    ]
+  }))
+}
+
+/**
  * 2つのフォルダ間でMD5ハッシュが重複しているファイルをグループ化する
  */
 export function findCrossDuplicatesByHash(

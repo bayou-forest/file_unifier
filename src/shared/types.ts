@@ -77,3 +77,23 @@ export interface ThumbnailResult {
   /** Base64エンコードされた画像データ (data URI) */
   dataUrl: string | null
 }
+
+/** ハッシュキャッシュの1エントリ */
+export interface CacheEntry {
+  /** ファイルの絶対パス */
+  filePath: string
+  /** MD5ハッシュ値 */
+  hash: string
+  /** ファイルサイズ (bytes) */
+  size: number
+  /** 更新日時 (ms) */
+  mtimeMs: number
+}
+
+/** ハッシュキャッシュの情報 */
+export interface CacheInfo {
+  /** キャッシュされているファイル件数 */
+  count: number
+  /** キャッシュエントリの詳細一覧 */
+  entries: CacheEntry[]
+}

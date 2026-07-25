@@ -13,7 +13,7 @@ function createWindow(): BrowserWindow {
       sandbox: false,
       webSecurity: false // file:// プロトコルでの動画サムネイル表示に必要
     },
-    title: 'File Unifier'
+    title: `File Unifier v${app.getVersion()}`
   })
 
   // 開発環境ではdevサーバーURL、本番ではビルド済みHTMLを読み込み

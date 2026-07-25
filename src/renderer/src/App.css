@@ -249,6 +249,63 @@ button {
   text-overflow: ellipsis;
 }
 
+/* ===== Cache Info ===== */
+.cache-info-section {
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.cache-info-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.cache-info-details {
+  margin-top: 12px;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.cache-info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.cache-info-table th,
+.cache-info-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.cache-info-table th {
+  position: sticky;
+  top: 0;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+.cache-path-cell {
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cache-hash-cell {
+  font-family: monospace;
+  color: var(--text-muted);
+}
+
 /* ===== Scan Summary ===== */
 .scan-summary {
   display: flex;

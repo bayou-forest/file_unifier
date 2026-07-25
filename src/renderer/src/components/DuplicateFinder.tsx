@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect } from 'react'
-import type { FileInfo, ScanProgress, CopyUniqueResult } from '@shared/types'
+import type { FileInfo, ScanProgress, CopyUniqueResult, CacheInfo } from '@shared/types'
 import {
   findDuplicatesByHash,
   findDuplicatesByName,
+  findDuplicatesByNameAndHash,
   findCrossDuplicatesByHash,
-  findCrossDuplicatesByName
+  findCrossDuplicatesByName,
+  findCrossDuplicatesByNameAndHash
 } from '../utils/duplicateFinder'
 import DuplicateList from './DuplicateList'
 
@@ -14,8 +16,18 @@ const resultTabs = [
   { id: 'hash-cross', label: 'Hash重複 (A↔B)' },
   { id: 'name-a', label: '名前重複 (A内)' },
   { id: 'name-b', label: '名前重複 (B内)' },
-  { id: 'name-cross', label: '名前重複 (A↔B)' }
+  { id: 'name-cross', label: '名前重複 (A↔B)' },
+  { id: 'both-a', label: '名前+Hash重複 (A内)' },
+  { id: 'both-b', label: '名前+Hash重複 (B内)' },
+  { id: 'both-cross', label: '名前+Hash重複 (A↔B)' }
 ]
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`
+}
 
 export default function DuplicateFinder() {
   const [folderA, setFolderA] = useState('')
@@ -31,6 +43,8 @@ export default function DuplicateFinder() {
   const [copying, setCopying] = useState(false)
   const [copyResult, setCopyResult] = useState<CopyUniqueResult | null>(null)
   const [copyDirection, setCopyDirection] = useState<'AtoB' | 'BtoA' | null>(null)
+  const [cacheInfo, setCacheInfo] = useState<CacheInfo | null>(null)
+  const [showCacheDetails, setShowCacheDetails] = useState(false)
 
   // スキャン進捗リスナー
   useEffect(() => {
@@ -39,6 +53,23 @@ export default function DuplicateFinder() {
     })
     return cleanup
   }, [])
+
+  const refreshCacheInfo = async (): Promise<void> => {
+    const info = await window.electronAPI.getCacheInfo()
+    setCacheInfo(info)
+  }
+
+  // 初回表示時にキャッシュ件数を取得
+  useEffect(() => {
+    refreshCacheInfo()
+  }, [])
+
+  const toggleCacheDetails = async (): Promise<void> => {
+    if (!showCacheDetails) {
+      await refreshCacheInfo()
+    }
+    setShowCacheDetails((prev) => !prev)
+  }
 
   const selectFolderA = async () => {
     const path = await window.electronAPI.selectFolder()
@@ -105,6 +136,7 @@ export default function DuplicateFinder() {
     } finally {
       setScanning(false)
       setProgress(null)
+      refreshCacheInfo()
     }
   }
 
@@ -124,6 +156,15 @@ export default function DuplicateFinder() {
     () =>
       filesA.length > 0 && filesB.length > 0
         ? findCrossDuplicatesByName(filesA, filesB)
+        : [],
+    [filesA, filesB]
+  )
+  const bothDupsA = useMemo(() => findDuplicatesByNameAndHash(filesA), [filesA])
+  const bothDupsB = useMemo(() => findDuplicatesByNameAndHash(filesB), [filesB])
+  const bothDupsCross = useMemo(
+    () =>
+      filesA.length > 0 && filesB.length > 0
+        ? findCrossDuplicatesByNameAndHash(filesA, filesB)
         : [],
     [filesA, filesB]
   )
@@ -186,7 +227,10 @@ export default function DuplicateFinder() {
     'hash-cross': hashDupsCross.length,
     'name-a': nameDupsA.length,
     'name-b': nameDupsB.length,
-    'name-cross': nameDupsCross.length
+    'name-cross': nameDupsCross.length,
+    'both-a': bothDupsA.length,
+    'both-b': bothDupsB.length,
+    'both-cross': bothDupsCross.length
   }
 
   const getActiveGroups = () => {
@@ -203,6 +247,12 @@ export default function DuplicateFinder() {
         return nameDupsB
       case 'name-cross':
         return nameDupsCross
+      case 'both-a':
+        return bothDupsA
+      case 'both-b':
+        return bothDupsB
+      case 'both-cross':
+        return bothDupsCross
       default:
         return []
     }
@@ -256,6 +306,43 @@ export default function DuplicateFinder() {
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="cache-info-section">
+        <div className="cache-info-summary">
+          <span>ハッシュキャッシュ: {cacheInfo ? cacheInfo.count : 0} 件</span>
+          <button
+            className="btn-secondary"
+            onClick={toggleCacheDetails}
+            disabled={!cacheInfo || cacheInfo.count === 0}
+          >
+            {showCacheDetails ? '詳細を隠す' : '詳細を表示'}
+          </button>
+        </div>
+        {showCacheDetails && cacheInfo && cacheInfo.count > 0 && (
+          <div className="cache-info-details">
+            <table className="cache-info-table">
+              <thead>
+                <tr>
+                  <th>ファイルパス</th>
+                  <th>サイズ</th>
+                  <th>MD5</th>
+                </tr>
+              </thead>
+              <tbody>
+                {cacheInfo.entries.map((entry) => (
+                  <tr key={entry.filePath}>
+                    <td className="cache-path-cell" title={entry.filePath}>
+                      {entry.filePath}
+                    </td>
+                    <td>{formatSize(entry.size)}</td>
+                    <td className="cache-hash-cell">{entry.hash}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="scan-controls">

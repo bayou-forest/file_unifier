@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { FileInfo, ScanProgress, DeleteResult, FlattenResult, DateSortResult, ThumbnailResult, CopyUniqueResult } from '@shared/types'
+import type { FileInfo, ScanProgress, DeleteResult, FlattenResult, DateSortResult, ThumbnailResult, CopyUniqueResult, CacheInfo } from '@shared/types'
 
 /**
  * レンダラープロセスに公開するAPI
@@ -19,6 +19,11 @@ const api = {
   /** スキャンを中断する */
   abortScan: (): Promise<void> => {
     return ipcRenderer.invoke('abort-scan')
+  },
+
+  /** ハッシュキャッシュ情報 (件数 + 詳細) を取得する */
+  getCacheInfo: (): Promise<CacheInfo> => {
+    return ipcRenderer.invoke('get-cache-info')
   },
 
   /** 指定ファイルを削除する */

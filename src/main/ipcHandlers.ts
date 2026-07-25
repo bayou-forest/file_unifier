@@ -1,5 +1,5 @@
 import { ipcMain, dialog } from 'electron'
-import { scanFolder, abortScan } from './fileScanner'
+import { scanFolder, abortScan, getCacheInfo } from './fileScanner'
 import { deleteFiles, flattenFolder, removeEmptyFolders, dateSortFiles, getThumbnail, isMediaFile, copyUniqueFiles } from './fileOperations'
 
 /**
@@ -29,6 +29,11 @@ export function registerIpcHandlers(): void {
   // スキャン中断
   ipcMain.handle('abort-scan', async () => {
     abortScan()
+  })
+
+  // ハッシュキャッシュ情報の取得 (件数 + 詳細)
+  ipcMain.handle('get-cache-info', async () => {
+    return getCacheInfo()
   })
 
   // ファイル削除
